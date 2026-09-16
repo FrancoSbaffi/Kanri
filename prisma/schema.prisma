@@ -1,0 +1,332 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String
+  avatar        String?
+  career        String?         @default("Ingeniería Informática")
+  university    String?         @default("Universidad")
+  timezone      String          @default("America/Argentina/Buenos_Aires")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  academicYears AcademicYear[]
+  studySessions StudySession[]
+  reviewSessions ReviewSession[]
+  quizAttempts  QuizAttempt[]
+  notifications Notification[]
+}
+
+model AcademicYear {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String      // e.g. "2026"
+  startDate   DateTime
+  endDate     DateTime
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  semesters   Semester[]
+}
+
+model Semester {
+  id              String        @id @default(cuid())
+  academicYearId  String
+  academicYear    AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  name            String        // e.g. "2° Cuatrimestre 2026"
+  startDate       DateTime
+  endDate         DateTime
+  status          String        @default("active") // active, completed, archived
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  subjects        Subject[]
+}
+
+model Subject {
+  id          String      @id @default(cuid())
+  semesterId  String
+  semester    Semester    @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  name        String      // e.g. "Bases de Datos"
+  code        String?     // e.g. "BD-301"
+  professor   String?     // e.g. "Ing. Carlos Mendoza"
+  commission  String?     // e.g. "Comisión 3K2"
+  description String?
+  color       String      @default("#6366f1") // subtle accent hex
+  credits     Int?        @default(4)
+  status      String      @default("active") // active, completed, archived
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  classes       ClassSession[]
+  materials     Material[]
+  topics        Topic[]
+  questions     Question[]
+  flashcards    Flashcard[]
+  exams         Exam[]
+  assignments   Assignment[]
+  studySessions StudySession[]
+  quizAttempts  QuizAttempt[]
+}
+
+model ClassSession {
+  id                String      @id @default(cuid())
+  subjectId         String
+  subject           Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title             String      // e.g. "Normalización y Dependencias Funcionales"
+  classNumber       Int         @default(1)
+  date              DateTime
+  startTime         String      @default("18:00") // "18:00"
+  endTime           String      @default("20:00") // "20:00"
+  modality          String      @default("presencial") // presencial, virtual, hybrid
+  location          String?     // Campus / Facultad
+  room              String?     // e.g. "Aula 304"
+  notes             String?     // Personal notes in markdown
+  attendanceStatus  String      @default("pending") // pending, attended, missed, cancelled
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  materials         Material[]
+  summaries         Summary[]
+  topics            Topic[]
+  questions         Question[]
+}
+
+model Material {
+  id                String      @id @default(cuid())
+  classId           String?
+  classSession      ClassSession? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  subjectId         String
+  subject           Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  fileName          String      // e.g. "Clase_07_Normalizacion.pdf"
+  fileType          String      @default("application/pdf")
+  fileSize          Int         @default(0) // bytes
+  storagePath       String      // local relative path e.g. "uploads/materials/..."
+  extractedText     String?     // Normalized extracted text
+  processingStatus  String      @default("completed") // uploaded, extracting, analyzing, completed, failed
+  errorMessage      String?
+  uploadedAt        DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  summaries         Summary[]
+}
+
+model Summary {
+  id                    String        @id @default(cuid())
+  classId               String?
+  classSession          ClassSession? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  materialId            String?
+  material              Material?     @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  title                 String        // Title of the summary
+  overview              String        // High-level overview (1-2 paragraphs)
+  detailedSummary       String        // Complete structured explanation
+  simplifiedExplanation String?       // "Explain like I'm 5 / beginner"
+  keyPointsJson         String        @default("[]") // JSON string array of key takeaways
+  definitionsJson       String        @default("[]") // JSON array of [{ term, definition }]
+  examplesJson          String        @default("[]") // JSON array of [{ title, description, codeOrExample }]
+  commonMistakesJson    String        @default("[]") // JSON array of [{ mistake, explanation }]
+  aiModel               String        @default("gemini-1.5-pro")
+  version               Int           @default(1)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Topic {
+  id              String        @id @default(cuid())
+  subjectId       String
+  subject         Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId         String?
+  classSession    ClassSession? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  name            String        // e.g. "Primera Forma Normal (1FN)"
+  description     String?
+  importance      String        @default("high") // low, medium, high, critical
+  masteryScore    Int           @default(50) // 0 to 100
+  lastReviewedAt  DateTime?
+  nextReviewAt    DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  concepts        Concept[]
+  questions       Question[]
+  flashcards      Flashcard[]
+  examLinks       ExamTopic[]
+  studySessions   StudySession[]
+  reviewSessions  ReviewSession[]
+}
+
+model Concept {
+  id          String    @id @default(cuid())
+  topicId     String
+  topic       Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  name        String    // e.g. "Dependencia Funcional Parcial"
+  definition  String
+  explanation String?
+  example     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Question {
+  id          String        @id @default(cuid())
+  subjectId   String
+  subject     Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId     String?
+  classSession ClassSession? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  topicId     String?
+  topic       Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  question    String
+  optionsJson String        @default("[]") // JSON array for multiple choice: ["Opción A", "Opción B", ...]
+  answer      String        // Correct answer text or index
+  explanation String?
+  difficulty  String        @default("medium") // easy, medium, hard
+  type        String        @default("multiple_choice") // multiple_choice, true_false, short_answer, open_question
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Flashcard {
+  id              String          @id @default(cuid())
+  subjectId       String
+  subject         Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId         String?
+  topic           Topic?          @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  front           String          // Question / Prompt
+  back            String          // Answer / Explanation
+  difficulty      String          @default("medium")
+  easeFactor      Float           @default(2.5) // SM-2 ease factor
+  interval        Int             @default(1)   // SM-2 interval in days
+  repetitions     Int             @default(0)   // SM-2 repetition count
+  nextReviewAt    DateTime        @default(now())
+  lastReviewedAt  DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  reviews         ReviewSession[]
+}
+
+model Exam {
+  id          String        @id @default(cuid())
+  subjectId   String
+  subject     Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title       String        // e.g. "1° Parcial Teórico-Práctico"
+  examType    String        @default("midterm") // quiz, midterm, final, practical, oral
+  date        DateTime      // Date & time of exam
+  startTime   String?       @default("18:00")
+  location    String?       @default("Campus Central")
+  room        String?       @default("Aula Magna 1")
+  notes       String?
+  status      String        @default("upcoming") // upcoming, completed, graded, cancelled
+  grade       Float?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  topics      ExamTopic[]
+  planItems   PreparationPlanItem[]
+}
+
+model ExamTopic {
+  id        String    @id @default(cuid())
+  examId    String
+  exam      Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@unique([examId, topicId])
+}
+
+model PreparationPlanItem {
+  id          String    @id @default(cuid())
+  examId      String
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  scheduledDate DateTime
+  title       String    // e.g. "Repaso intensivo: Normalización"
+  description String?
+  completed   Boolean   @default(false)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Assignment {
+  id          String      @id @default(cuid())
+  subjectId   String
+  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title       String      // e.g. "TP 2: Diseño de Base de Datos para E-commerce"
+  description String?
+  dueDate     DateTime
+  priority    String      @default("medium") // low, medium, high, urgent
+  status      String      @default("todo")   // todo, in_progress, completed
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model StudySession {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId       String
+  subject         Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId         String?
+  topic           Topic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  startedAt       DateTime    @default(now())
+  endedAt         DateTime?
+  durationMinutes Int         @default(25)
+  difficultyRated String?     // easy, normal, hard
+  notes           String?
+  createdAt       DateTime    @default(now())
+}
+
+model ReviewSession {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId     String?
+  topic       Topic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  flashcardId String?
+  flashcard   Flashcard?  @relation(fields: [flashcardId], references: [id], onDelete: SetNull)
+  reviewedAt  DateTime    @default(now())
+  rating      Int         @default(3) // SM-2 score 0-5 (0=blackout, 3=pass with effort, 5=perfect)
+  difficulty  String      @default("normal")
+}
+
+model Notification {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String      // presencial_warning, exam_countdown, assignment_due, review_due, ai_completed
+  title         String
+  message       String
+  scheduledFor  DateTime    @default(now())
+  readAt        DateTime?
+  actionUrl     String?
+  createdAt     DateTime    @default(now())
+}
+
+model QuizAttempt {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId       String
+  subject         Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  score           Int         // Cantidad de respuestas correctas
+  totalQuestions  Int         // Cantidad total de preguntas del simulacro
+  percentage      Int         // Porcentaje de acierto (0 a 100)
+  durationSeconds Int         @default(0)
+  createdAt       DateTime    @default(now())
+}
+

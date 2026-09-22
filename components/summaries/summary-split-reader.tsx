@@ -55,6 +55,18 @@ interface SummarySplitReaderProps {
 
 export function SummarySplitReader({ summary }: SummarySplitReaderProps) {
   const [viewMode, setViewMode] = useState<"split" | "summary" | "pdf">("split");
+  const [isPdfExpanded, setIsPdfExpanded] = useState(false);
+
+  // Close theater fullscreen on ESC
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isPdfExpanded) {
+        setIsPdfExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPdfExpanded]);
 
   const keyPoints: string[] = JSON.parse(summary.keyPointsJson || "[]");
   const definitions: { term: string; definition: string }[] = JSON.parse(summary.definitionsJson || "[]");
@@ -135,7 +147,10 @@ ${commonMistakes.map((m) => `### ⚠️ ${m.mistake}\n${m.explanation}`).join("\
           {pdfUrl && (
             <div className="flex items-center bg-[var(--bg-surface-elevated)] p-1 rounded-lg border border-[var(--border-subtle)]">
               <button
-                onClick={() => setViewMode("summary")}
+                onClick={() => {
+                  setViewMode("summary");
+                  setIsPdfExpanded(false);
+                }}
                 className={`px-2.5 py-1 rounded-md font-medium transition ${
                   viewMode === "summary"
                     ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs"
@@ -145,7 +160,10 @@ ${commonMistakes.map((m) => `### ⚠️ ${m.mistake}\n${m.explanation}`).join("\
                 Solo Resumen
               </button>
               <button
-                onClick={() => setViewMode("split")}
+                onClick={() => {
+                  setViewMode("split");
+                  setIsPdfExpanded(false);
+                }}
                 className={`px-2.5 py-1 rounded-md font-medium transition hidden md:block ${
                   viewMode === "split"
                     ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs"
@@ -180,38 +198,73 @@ ${commonMistakes.map((m) => `### ⚠️ ${m.mistake}\n${m.explanation}`).join("\
 
       {/* Main Workspace (Split / Full) */}
       <div
-        className={`grid gap-4 transition-all ${
+        className={`transition-all ${
           viewMode === "split" && pdfUrl
-            ? "grid-cols-1 md:grid-cols-2 h-[calc(100vh-180px)]"
-            : "grid-cols-1"
+            ? "grid grid-cols-1 md:grid-cols-2 gap-4 h-[calc(100vh-175px)] min-h-[650px]"
+            : viewMode === "pdf" && pdfUrl
+            ? "w-full"
+            : "grid grid-cols-1 gap-4"
         }`}
       >
         {/* Left pane: PDF Viewer (in Split or PDF mode) */}
         {(viewMode === "split" || viewMode === "pdf") && pdfUrl && (
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden flex flex-col h-[600px] md:h-full">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-xs">
-              <div className="flex items-center gap-2 truncate">
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+          <div
+            className={`transition-all duration-200 border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden flex flex-col shadow-sm ${
+              isPdfExpanded
+                ? "fixed inset-3 md:inset-6 z-50 rounded-2xl shadow-2xl backdrop-blur-xl border-white/10"
+                : viewMode === "pdf"
+                ? "rounded-xl h-[calc(100vh-175px)] min-h-[650px] w-full"
+                : "rounded-xl h-full"
+            }`}
+          >
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-xs shrink-0">
+              <div className="flex items-center gap-2.5 truncate">
+                <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-400">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
                 <span className="font-semibold text-[var(--text-primary)] truncate">
                   {summary.material?.fileName ? formatFileName(summary.material.fileName) : "Documento de Cátedra"}
                 </span>
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                  PDF Cátedra
+                </span>
               </div>
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                title="Abrir en pestaña nueva"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+
+              <div className="flex items-center gap-1 text-[var(--text-muted)]">
+                <button
+                  onClick={() => setIsPdfExpanded(!isPdfExpanded)}
+                  className="p-1.5 rounded-md hover:bg-[var(--bg-surface-active)] hover:text-[var(--text-primary)] transition"
+                  title={isPdfExpanded ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+                >
+                  {isPdfExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                </button>
+
+                <a
+                  href={pdfUrl}
+                  download={summary.material?.fileName || "material.pdf"}
+                  className="p-1.5 rounded-md hover:bg-[var(--bg-surface-active)] hover:text-[var(--text-primary)] transition"
+                  title="Descargar PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-1.5 rounded-md hover:bg-[var(--bg-surface-active)] hover:text-[var(--text-primary)] transition"
+                  title="Abrir en pestaña nueva"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
 
-            <div className="flex-1 w-full h-full bg-[#18181b]">
+            <div className="relative flex-1 w-full h-full min-h-0 bg-[#18181b] overflow-hidden">
               <iframe
-                src={pdfUrl}
-                className="w-full h-full border-0"
-                title="Visor de PDF"
+                src={`${pdfUrl}#toolbar=1&navpanes=1`}
+                className="absolute inset-0 w-full h-full border-0"
+                title="Visor de PDF de Cátedra"
               />
             </div>
           </div>
@@ -221,7 +274,7 @@ ${commonMistakes.map((m) => `### ⚠️ ${m.mistake}\n${m.explanation}`).join("\
         {(viewMode === "split" || viewMode === "summary" || !pdfUrl) && (
           <div
             className={`rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 overflow-y-auto space-y-6 text-xs ${
-              viewMode === "split" ? "h-[600px] md:h-full" : ""
+              viewMode === "split" ? "h-full" : ""
             }`}
           >
             {/* Overview Box */}

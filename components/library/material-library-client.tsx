@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatDateEs } from "@/lib/utils/dates";
+import { formatFileName } from "@/lib/utils/format";
 
 interface MaterialItem {
   id: string;
@@ -103,7 +104,7 @@ export function MaterialLibraryClient({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-[var(--text-primary)] truncate">
-                    {m.fileName}
+                    {formatFileName(m.fileName)}
                   </span>
                   <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                     {m.processingStatus}

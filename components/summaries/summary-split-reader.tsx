@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { formatDateEs } from "@/lib/utils/dates";
+import { formatFileName } from "@/lib/utils/format";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 
 interface SummarySplitReaderProps {
@@ -192,7 +193,7 @@ ${commonMistakes.map((m) => `### ⚠️ ${m.mistake}\n${m.explanation}`).join("\
               <div className="flex items-center gap-2 truncate">
                 <FileText className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="font-semibold text-[var(--text-primary)] truncate">
-                  {summary.material?.fileName}
+                  {summary.material?.fileName ? formatFileName(summary.material.fileName) : "Documento de Cátedra"}
                 </span>
               </div>
               <a

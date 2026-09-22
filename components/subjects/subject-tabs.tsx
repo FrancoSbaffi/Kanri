@@ -22,6 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatDateEs } from "@/lib/utils/dates";
+import { formatFileName } from "@/lib/utils/format";
 import { updateAssignmentStatus } from "@/app/actions/tasks";
 import { togglePlanItemCompleted } from "@/app/actions/exams";
 
@@ -361,7 +362,7 @@ export function SubjectTabs({ subject, activeTab: initialTab, weakTopics }: Subj
                       {/* Bottom Footer Bar */}
                       <div className="pt-2.5 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2 text-[11px]">
                         <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[280px]">
-                          {mat?.fileName || "Material oficial de cátedra"}
+                          {mat?.fileName ? formatFileName(mat.fileName) : "Material oficial de cátedra"}
                         </span>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -795,7 +796,7 @@ export function SubjectTabs({ subject, activeTab: initialTab, weakTopics }: Subj
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">
-                          {m.fileName}
+                          {formatFileName(m.fileName)}
                         </span>
                         <span
                           className={`text-[9px] px-1.5 py-0.2 rounded font-mono uppercase font-bold shrink-0 ${

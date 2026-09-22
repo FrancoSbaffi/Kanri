@@ -17,8 +17,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { formatDateEs } from "@/lib/utils/dates";
+import { formatFileName } from "@/lib/utils/format";
 import { ClassUploader } from "@/components/classes/class-uploader";
 import { AttendanceSelector } from "@/components/classes/attendance-selector";
+import { ClassNotesEditor } from "@/components/classes/class-notes-editor";
 
 export const revalidate = 0;
 
@@ -203,17 +205,12 @@ export default async function ClassDetailPage(props: {
             )}
           </div>
 
-          {/* Personal Notes */}
-          {classSession.notes && (
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] border-b border-[var(--border-subtle)] pb-3 mb-3">
-                Apuntes Personales de Clase
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
-                {classSession.notes}
-              </p>
-            </div>
-          )}
+          {/* Class Notes Notebook */}
+          <ClassNotesEditor
+            classId={classSession.id}
+            initialNotes={classSession.notes}
+            classTitle={classSession.title}
+          />
         </div>
 
         {/* Right sidebar: Materials list, Topics, and Exam Questions */}
@@ -232,7 +229,7 @@ export default async function ClassDetailPage(props: {
                   <div className="min-w-0 flex items-center gap-2">
                     <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                     <span className="truncate font-medium text-[var(--text-primary)]">
-                      {m.fileName}
+                      {formatFileName(m.fileName)}
                     </span>
                   </div>
                   <a

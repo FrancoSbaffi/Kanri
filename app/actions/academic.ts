@@ -93,3 +93,19 @@ export async function updateClassAttendance(
     return { success: false, error: error?.message };
   }
 }
+
+export async function updateClassNotes(classId: string, notes: string) {
+  try {
+    const session = await prisma.classSession.update({
+      where: { id: classId },
+      data: { notes },
+    });
+
+    revalidatePath("/classes");
+    revalidatePath(`/classes/${classId}`);
+    return { success: true, session };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
+  }
+}
+
